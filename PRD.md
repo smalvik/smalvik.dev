@@ -212,7 +212,7 @@ Filtering by technology tag (React, Node.js, GraphQL, etc.)
 | Theme | **MUI ThemeProvider** | Dark/light toggle via MUI's built-in theming system |
 | Forms | **React Hook Form + Zod** | Client-side validation |
 | GraphQL Client | **Apollo Client** | GraphQL integration with NestJS backend |
-| Deployment | **Docker → Vercel / self-hosted** | Containerized deployment |
+| Deployment | **Docker on Timeweb Cloud (138.124.75.120)** | Self-hosted, domain smalvik.dev |
 
 ### Backend
 | Layer | Technology | Rationale |
@@ -224,7 +224,7 @@ Filtering by technology tag (React, Node.js, GraphQL, etc.)
 | Database | **PostgreSQL** | Stores contact form submissions, analytics |
 | Email | **@nestjs-modules/mailer + Nodemailer** | Contact form email delivery |
 | Validation | **class-validator + class-transformer** | DTO validation |
-| Deployment | **Docker → Railway / self-hosted** | Containerized deployment |
+| Deployment | **Docker on Timeweb Cloud (138.124.75.120)** | Self-hosted alongside frontend |
 
 ### Infrastructure & Deployment
 | Layer | Technology | Rationale |
@@ -235,12 +235,18 @@ Filtering by technology tag (React, Node.js, GraphQL, etc.)
 | Container Registry | **Docker Hub** | Public images: `smalvik/smalvik-dev-web`, `smalvik/smalvik-dev-api`, `smalvik/smalvik-dev-nginx` |
 | Monorepo | **Turborepo** | Shared types between frontend & backend |
 | GraphQL Schema | **Code-first (NestJS)** | Auto-generated schema from decorators |
-| Domain | Custom domain (e.g., `smalvik.dev`) | Professional impression |
+| Hosting | **Timeweb Cloud** | VPS server `138.124.75.120`, domain `smalvik.dev` |
+| SSL | **Let's Encrypt (Certbot)** | Free SSL certificates, auto-renewal via Nginx |
+| Domain | **smalvik.dev** | DNS A-record → 138.124.75.120 |
 | Analytics | **Plausible** | Privacy-friendly, no cookie banner |
 
 ### Docker Architecture
 
+**Server:** Timeweb Cloud VPS `138.124.75.120`
+**Domain:** `smalvik.dev` (DNS A-record → 138.124.75.120)
+
 ```
+         smalvik.dev (138.124.75.120)
 ┌─────────────────────────────────────────────┐
 │              Docker Compose                  │
 │                                              │
@@ -248,22 +254,31 @@ Filtering by technology tag (React, Node.js, GraphQL, etc.)
 │  │  nginx   │  │   web    │  │    api     │  │
 │  │ :80/:443 │──│  :3000   │  │   :4000   │  │
 │  │ gateway  │  │ Next.js  │  │  NestJS   │  │
-│  └──────────┘  └──────────┘  └───────────┘  │
-│       │                            │         │
-│       └────────────────────────────┘         │
-│              reverse proxy                   │
+│  │ SSL/TLS  │  └──────────┘  └───────────┘  │
+│  └──────────┘                                │
+│       │         ┌───────────┐                │
+│       └─────────│ postgres  │                │
+│                 │   :5432   │                │
+│                 └───────────┘                │
 └─────────────────────────────────────────────┘
 ```
 
 **Nginx routing rules:**
-- `/` → `web:3000` (Next.js frontend)
-- `/graphql` → `api:4000/graphql` (NestJS GraphQL API)
+- `https://smalvik.dev/` → `web:3000` (Next.js frontend)
+- `https://smalvik.dev/graphql` → `api:4000/graphql` (NestJS GraphQL API)
+- HTTP → HTTPS redirect (port 80 → 443)
+- SSL via Let's Encrypt (Certbot), auto-renewal
 - Static assets caching, gzip compression, security headers
 
 **Docker Hub images** (pushed via CI or manually):
 - `smalvik/smalvik-dev-web:latest` — Next.js frontend
 - `smalvik/smalvik-dev-api:latest` — NestJS backend
-- `smalvik/smalvik-dev-nginx:latest` — Nginx gateway with custom config
+- `smalvik/smalvik-dev-nginx:latest` — Nginx gateway with SSL config
+
+**Deployment flow:**
+1. Build & push images to Docker Hub
+2. SSH to 138.124.75.120
+3. `docker compose pull && docker compose up -d`
 
 ---
 
@@ -449,14 +464,14 @@ Minimum for launch:
 - [x] Dark / light theme toggle
 - [x] EN / RU language switcher
 - [x] Mobile-responsive design
-- [x] Deploy to Vercel
+- [x] Deploy to Timeweb Cloud (138.124.75.120) via Docker Compose
 
 ### Phase 2 (Post-launch)
 - Blog / articles section
 - Case study pages (detailed project breakdowns)
 - Animated project demos (GIFs / videos)
 - Testimonials / recommendations
-- Custom domain + email
+- Custom email on smalvik.dev domain
 - Analytics dashboard
 
 ---
@@ -486,7 +501,7 @@ Minimum for launch:
 7. **Contact form:** Submit test message, verify email delivery
 8. **Accessibility:** Tab navigation, screen reader, ARIA labels
 9. **SEO:** Check meta tags, OG tags, structured data, sitemap
-10. **Deploy:** Push to Vercel, verify production build
+10. **Deploy:** `docker compose up -d` on 138.124.75.120, verify https://smalvik.dev
 
 ---
 
