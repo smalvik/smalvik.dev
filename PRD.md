@@ -212,7 +212,7 @@ Filtering by technology tag (React, Node.js, GraphQL, etc.)
 | Theme | **MUI ThemeProvider** | Dark/light toggle via MUI's built-in theming system |
 | Forms | **React Hook Form + Zod** | Client-side validation |
 | GraphQL Client | **Apollo Client** | GraphQL integration with NestJS backend |
-| Deployment | **Vercel** | Free tier, perfect Next.js integration |
+| Deployment | **Docker → Vercel / self-hosted** | Containerized deployment |
 
 ### Backend
 | Layer | Technology | Rationale |
@@ -224,15 +224,46 @@ Filtering by technology tag (React, Node.js, GraphQL, etc.)
 | Database | **PostgreSQL** | Stores contact form submissions, analytics |
 | Email | **@nestjs-modules/mailer + Nodemailer** | Contact form email delivery |
 | Validation | **class-validator + class-transformer** | DTO validation |
-| Deployment | **Railway** or **Render** | Free tier, easy NestJS hosting |
+| Deployment | **Docker → Railway / self-hosted** | Containerized deployment |
 
-### Shared
+### Infrastructure & Deployment
 | Layer | Technology | Rationale |
 |---|---|---|
+| Containerization | **Docker** | Each service (web, api, nginx) runs in its own container |
+| Gateway / Reverse Proxy | **Nginx** | Routes traffic: `/` → web, `/graphql` → api; SSL termination, gzip, caching |
+| Orchestration | **Docker Compose** | Local dev & production multi-container setup |
+| Container Registry | **Docker Hub** | Public images: `smalvik/smalvik-dev-web`, `smalvik/smalvik-dev-api`, `smalvik/smalvik-dev-nginx` |
 | Monorepo | **Turborepo** | Shared types between frontend & backend |
 | GraphQL Schema | **Code-first (NestJS)** | Auto-generated schema from decorators |
 | Domain | Custom domain (e.g., `smalvik.dev`) | Professional impression |
 | Analytics | **Plausible** | Privacy-friendly, no cookie banner |
+
+### Docker Architecture
+
+```
+┌─────────────────────────────────────────────┐
+│              Docker Compose                  │
+│                                              │
+│  ┌──────────┐  ┌──────────┐  ┌───────────┐  │
+│  │  nginx   │  │   web    │  │    api     │  │
+│  │ :80/:443 │──│  :3000   │  │   :4000   │  │
+│  │ gateway  │  │ Next.js  │  │  NestJS   │  │
+│  └──────────┘  └──────────┘  └───────────┘  │
+│       │                            │         │
+│       └────────────────────────────┘         │
+│              reverse proxy                   │
+└─────────────────────────────────────────────┘
+```
+
+**Nginx routing rules:**
+- `/` → `web:3000` (Next.js frontend)
+- `/graphql` → `api:4000/graphql` (NestJS GraphQL API)
+- Static assets caching, gzip compression, security headers
+
+**Docker Hub images** (pushed via CI or manually):
+- `smalvik/smalvik-dev-web:latest` — Next.js frontend
+- `smalvik/smalvik-dev-api:latest` — NestJS backend
+- `smalvik/smalvik-dev-nginx:latest` — Nginx gateway with custom config
 
 ---
 
@@ -287,9 +318,15 @@ The LinkedIn button should be:
 
 ```
 smalvik.dev/
+├── docker-compose.yml               # Multi-container orchestration
+├── docker-compose.dev.yml           # Dev overrides (volumes, hot reload)
 ├── turbo.json
 ├── package.json                     # Workspace root
 ├── PRD.md                           # This document
+│
+├── nginx/
+│   ├── Dockerfile                   # Nginx gateway image
+│   └── nginx.conf                   # Routing, caching, security headers
 │
 ├── apps/
 │   ├── web/                         # Next.js Frontend
@@ -328,6 +365,7 @@ smalvik.dev/
 │   │   │   └── styles/
 │   │   │       └── globals.css
 │   │   ├── next.config.ts
+│   │   ├── Dockerfile                # Multi-stage build for web
 │   │   ├── theme.ts                  # MUI theme config (light + dark)
 │   │   └── package.json
 │   │
@@ -350,6 +388,7 @@ smalvik.dev/
 │       │       └── prisma.service.ts
 │       ├── prisma/
 │       │   └── schema.prisma               # DB schema (contact messages)
+│       ├── Dockerfile                # Multi-stage build for api
 │       ├── nest-cli.json
 │       └── package.json
 │
