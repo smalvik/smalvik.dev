@@ -175,11 +175,40 @@ Filtering by technology tag (React, Node.js, GraphQL, etc.)
 - Fallback: NestJS returns cached data if GitHub API is rate-limited
 - Next.js ISR on top for SSG pages (revalidate every hour)
 
-### 4.4. Responsive Design (Mobile-First)
-- Breakpoints: 320px (mobile), 768px (tablet), 1024px (desktop), 1440px (wide)
-- Touch targets: minimum 48x48px
-- Hamburger menu on mobile with language switcher inside
-- Contact form fields optimized for mobile (83% of traffic is mobile)
+### 4.4. Adaptive Layout (Mobile-First)
+
+**Подход:** Mobile-first — стили пишутся от мобильного к десктопу. Используются MUI `<Grid>`, `<Container>`, `<Stack>` и `useMediaQuery` для адаптации.
+
+**MUI Breakpoints:**
+| Breakpoint | Ширина | Устройства |
+|---|---|---|
+| `xs` | 0–599px | Смартфоны (portrait) |
+| `sm` | 600–899px | Смартфоны (landscape), малые планшеты |
+| `md` | 900–1199px | Планшеты |
+| `lg` | 1200–1535px | Ноутбуки, десктопы |
+| `xl` | 1536px+ | Широкие мониторы |
+
+**Поведение компонентов по breakpoints:**
+
+| Компонент | xs (mobile) | sm-md (tablet) | lg+ (desktop) |
+|---|---|---|---|
+| **Header** | Hamburger menu, logo only | Hamburger + theme/lang toggles | Full nav bar, все ссылки inline |
+| **Hero** | Stacked layout, 1 CTA button, compact text | 2 CTA buttons, larger text | Full-width с animated background, 2 CTAs side-by-side |
+| **About** | Photo сверху, stats 2×2 grid | Photo слева + text справа, stats 2×2 | Photo слева + text справа, stats 4×1 row |
+| **Experience** | Timeline вертикальная, cards collapsed | Timeline вертикальная, cards expanded | Timeline с alternating left/right cards |
+| **Skills** | Chips в 2 колонки | Chips в 3 колонки | Chips в 4-5 колонок по категориям |
+| **Projects** | 1 card per row, stacked | 2 cards per row | 3 cards per row, hover effects |
+| **Contact** | Form full-width, LinkedIn button stacked | Form + LinkedIn side-by-side | Form слева, social links справа |
+| **Footer** | Stacked links, centered | 2-column layout | 3-column layout |
+
+**Общие правила:**
+- Touch targets: минимум 48×48px (WCAG / Google)
+- Шрифты: fluid typography через `clamp()` или MUI `responsiveFontSizes()`
+- Изображения: `<Image>` от Next.js с `sizes` атрибутом, srcset для разных разрешений
+- Контейнер: `<Container maxWidth="lg">` с адаптивными padding'ами
+- Spacing: `theme.spacing()` масштабируется через MUI
+- Отключение тяжёлых анимаций на `xs`/`sm` для производительности
+- `prefers-reduced-motion` — уважаем настройки пользователя
 
 ### 4.5. Animations & Micro-interactions
 - Scroll-triggered fade-in for sections (Intersection Observer)
